@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Wahid Kuis — Global Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #02040a; --panel: rgba(10, 15, 30, 0.6); --line: rgba(255,255,255,0.1);
+    --p1: #00f3ff; --p2: #ff0055; --green: #00ff88; --red: #ff3333;
+    --txt: #ffffff; --dim: #8892b0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
+  html, body { width:100%; height:100%; background:var(--bg); color:var(--txt); font-family:'Outfit',sans-serif; overflow:hidden; }
+  
+  .bg-glow {
+    position:fixed; inset:0; z-index:-2;
+    background: radial-gradient(circle at 10% 20%, rgba(0, 243, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(20, 20, 40, 1) 0%, #02040a 100%);
+    animation: pulseBg 10s infinite alternate;
+  }
+  @keyframes pulseBg { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+  
+  .bg-grid {
+    position:fixed; inset:0; z-index:-1;
+    background-image: linear-gradient(rgba(0,243,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,243,255,0.05) 1px, transparent 1px);
+    background-size: 30px 30px; transform: perspective(500px) rotateX(60deg) translateY(-200px) translateZ(-200px);
+    animation: gridMove 5s linear infinite;
+  }
+  @keyframes gridMove { 100% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); } }
+
+  #app { height:100%; display:flex; flex-direction:column; position:relative; z-index:1; }
+
+  header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px; gap:10px; }
+  .p-card {
+    background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px; flex: 1; max-width: 160px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: all 0.3s;
+  }
+  .p-card.p1 { border-left: 3px solid var(--p1); }
+  .p-card.p2 { border-right: 3px solid var(--p2); flex-direction: row-reverse; text-align: right; }
+  
+  .p-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #111; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .p1 .p-avatar { border: 2px solid var(--p1); box-shadow: 0 0 15px rgba(0,243,255,0.4); }
+  .p2 .p-avatar { border: 2px solid var(--p2); box-shadow: 0 0 15px rgba(255,0,85,0.4); }
+
+  .p-info { display: flex; flex-direction: column; }
+  .p-name { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+  .p-score { font-size: 24px; font-weight: 900; line-height: 1; }
+  .p1 .p-score { color: var(--p1); text-shadow: 0 0 10px var(--p1); }
+  .p2 .p-score { color: var(--p2); text-shadow: 0 0 10px var(--p2); }
+  .vs { font-size: 16px; font-weight: 900; color: var(--dim); margin-top: 15px; font-style: italic; }
+
+  main { flex:1; display:flex; flex-direction:column; padding:0 20px 20px; align-items:center; justify-content:center; }
+  .timer-wrap { width:100%; max-width:600px; margin-bottom: 20px; }
+  .progress-text { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--dim); margin-bottom: 8px; letter-spacing: 0.1em; }
+  .timer-bar { width:100%; height:12px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
+  .timer-fill { height:100%; width:100%; background: linear-gradient(90deg, var(--p1), #00ff88); transition: width 0.1s linear; border-radius: 10px; box-shadow: 0 0 10px var(--p1); }
+
+  .q-card {
+    background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 24px; padding: 30px 20px;
+    text-align: center; width: 100%; max-width: 600px; margin-bottom: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.02);
+    position: relative; overflow: hidden;
+  }
+  .q-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--p1), transparent); }
+  .flag-img { font-size: 80px; margin-bottom: 15px; line-height: 1; filter: drop-shadow(0 5px 15px rgba(255,255,255,0.2)); }
+  .q-text { font-size: 20px; font-weight: 700; line-height: 1.4; }
+
+  .opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:600px; }
+  .opt-btn {
+    background: rgba(255,255,255,0.03); color: var(--txt); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 18px 12px; font-size: 16px; font-family: inherit; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; backdrop-filter: blur(5px);
+  }
+  .opt-btn:active { transform: scale(0.96); }
+  .opt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .opt-btn.correct { background: rgba(0, 255, 136, 0.15); border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0,255,136,0.2); opacity: 1 !important; }
+  .opt-btn.wrong { background: rgba(255, 51, 51, 0.15); border-color: var(--red); color: var(--red); box-shadow: 0 0 20px rgba(255,51,51,0.2); opacity: 1 !important; }
+  .opt-btn.bot-pick { border-color: var(--p2); box-shadow: 0 0 20px rgba(255,0,85,0.4); }
+
+  #overlay {
+    position:fixed; inset:0; background: rgba(2, 4, 10, 0.85); backdrop-filter: blur(10px);
+    z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:20px; text-align:center; transition: opacity 0.4s;
+  }
+  #overlay.hidden { opacity:0; pointer-events:none; }
+  
+  .logo-title { font-size: 42px; font-weight: 900; line-height: 1; margin-bottom: 5px; background: linear-gradient(135deg, var(--p1), #fff, var(--p2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(0,243,255,0.3)); }
+  .logo-sub { font-size: 14px; color: var(--dim); letter-spacing: 0.2em; margin-bottom: 40px; font-weight: 700; }
+
+  .avatar-upload { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s; }
+  .avatar-upload:hover { border-color: var(--p1); background: rgba(0,243,255,0.05); }
+  .avatar-upload img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .avatar-upload span { font-size: 12px; color: var(--dim); font-weight: 700; letter-spacing: 0.1em; }
+
+  .btn-start { background: linear-gradient(135deg, var(--p1), #00aaff); color: #000; border: none; border-radius: 30px; padding: 18px 45px; font-family: inherit; font-weight: 900; font-size: 18px; cursor: pointer; letter-spacing: 0.05em; margin-top: 10px; box-shadow: 0 10px 30px rgba(0,243,255,0.3); transition: all 0.2s; }
+  .btn-start:active { transform: scale(0.95); }
+  .btn-start:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  .res-title { font-size: 32px; font-weight: 900; margin-bottom: 10px; }
+  .res-score { font-size: 56px; font-weight: 900; margin-bottom: 30px; letter-spacing: 2px; }
+  .res-score .p1 { color: var(--p1); text-shadow: 0 0 20px var(--p1); }
+  .res-score .p2 { color: var(--p2); text-shadow: 0 0 20px var(--p2); }
+
+  @keyframes popAnim { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1.2); } }
+  .float-text { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: 900; pointer-events: none; z-index: 20; opacity: 0; text-transform: uppercase; letter-spacing: 0.1em; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="bg-grid"></div>
+
+<div id="app">
+  <header>
+    <div class="p-card p1">
+      <img src="" class="p-avatar" id="myAvatar" style="display:none;">
+      <div class="p-avatar" id="myAvatarFallback">👤</div>
+      <div class="p-info"><div class="p-name">KAMU</div><div class="p-score" id="scoreP1">0</div></div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="p-card p2">
+      <div class="p-avatar">🤖</div>
+      <div class="p-info"><div class="p-name">BOT</div><div class="p-score" id="scoreP2">0</div></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="timer-wrap">
+      <div class="progress-text"><span id="progressText">SOAL 1 / 20</span><span id="timerText">00:00</span></div>
+      <div class="timer-bar"><div class="timer-fill" id="timerBar"></div></div>
+    </div>
+    <div class="q-card">
+      <div class="flag-img" id="flagContainer">🌍</div>
+      <div class="q-text" id="questionText">Siap-siap...</div>
+    </div>
+    <div class="opts-grid" id="optionsGrid"></div>
+  </main>
+</div>
+
+<div class="float-text" id="floatText"></div>
+
+<div id="overlay">
+  <div class="logo-title">WAHID KUIS</div>
+  <div class="logo-sub">GLOBAL EDITION</div>
+  
+  <div id="setupScreen">
+    <label class="avatar-upload" id="uploadLabel">
+      <img id="facePreview" src="" alt="">
+      <span id="uploadText">PASANG<br>FOTO</span>
+      <input type="file" id="faceInput" accept="image/*" style="display:none;">
+    </label>
+    <br>
+    <button class="btn-start" id="startBtn" disabled>MULAI DUEL</button>
+  </div>
+
+  <div id="overlayResult" style="display:none;">
+    <div class="res-title" id="resTitle">SELESAI</div>
+    <div class="res-score" id="resScore"></div>
+    <button class="btn-start" id="restartBtn">MAIN LAGI</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ===== DATABASE NEGARA & IBU KOTA (195+ Negara) =====
+  const countries = [
+    { n: "Afghanistan", c: "Kabul" }, { n: "Afrika Selatan", c: "Pretoria" }, { n: "Albania", c: "Tirana" },
+    { n: "Aljazair", c: "Aljir" }, { n: "Amerika Serikat", c: "Washington D.C." }, { n: "Andorra", c: "Andorra la Vella" },
+    { n: "Angola", c: "Luanda" }, { n: "Antigua dan Barbuda", c: "St. John's" }, { n: "Arab Saudi", c: "Riyadh" },
+    { n: "Argentina", c: "Buenos Aires" }, { n: "Armenia", c: "Yerevan" }, { n: "Australia", c: "Canberra" },
+    { n: "Austria", c: "Wina" }, { n: "Azerbaijan", c: "Baku" }, { n: "Bahama", c: "Nassau" },
+    { n: "Bahrain", c: "Manama" }, { n: "Bangladesh", c: "Dhaka" }, { n: "Barbados", c: "Bridgetown" },
+    { n: "Belanda", c: "Amsterdam" }, { n: "Belarus", c: "Minsk" }, { n: "Belgia", c: "Brussels" },
+    { n: "Belize", c: "Belmopan" }, { n: "Benin", c: "Porto-Novo" }, { n: "Bhutan", c: "Thimphu" },
+    { n: "Bolivia", c: "Sucre" }, { n: "Bosnia dan Herzegovina", c: "Sarajevo" }, { n: "Botswana", c: "Gaborone" },
+    { n: "Brazil", c: "Brasilia" }, { n: "Brunei", c: "Bandar Seri Begawan" }, { n: "Bulgaria", c: "Sofia" },
+    { n: "Burkina Faso", c: "Ouagadougou" }, { n: "Burundi", c: "Gitega" }, { n: "Ceko", c: "Prague" },
+    { n: "Chad", c: "N'Djamena" }, { n: "Chile", c: "Santiago" }, { n: "China", c: "Beijing" },
+    { n: "Denmark", c: "Copenhagen" }, { n: "Djibouti", c: "Djibouti" }, { n: "Dominika", c: "Roseau" },
+    { n: "Ekuador", c: "Quito" }, { n: "El Salvador", c: "San Salvador" }, { n: "Eritrea", c: "Asmara" },
+    { n: "Estonia", c: "Tallinn" }, { n: "Eswatini", c: "Mbabane" }, { n: "Ethiopia", c: "Addis Ababa" },
+    { n: "Fiji", c: "Suva" }, { n: "Filipina", c: "Manila" }, { n: "Finlandia", c: "Helsinki" },
+    { n: "Gabon", c: "Libreville" }, { n: "Gambia", c: "Banjul" }, { n: "Georgia", c: "Tbilisi" },
+    { n: "Ghana", c: "Accra" }, { n: "Grenada", c: "St. George's" }, { n: "Guatemala", c: "Guatemala City" },
+    { n: "Guinea", c: "Conakry" }, { n: "Guyana", c: "Georgetown" }, { n: "Haiti", c: "Port-au-Prince" },
+    { n: "Honduras", c: "Tegucigalpa" }, { n: "Hongaria", c: "Budapest" }, { n: "India", c: "New Delhi" },
+    { n: "Indonesia", c: "Jakarta" }, { n: "Inggris", c: "London" }, { n: "Irak", c: "Baghdad" },
+    { n: "Iran", c: "Tehran" }, { n: "Irlandia", c: "Dublin" }, { n: "Islandia", c: "Reykjavik" },
+    { n: "Israel", c: "Yerusalem" }, { n: "Italia", c: "Roma" }, { n: "Jamaika", c: "Kingston" },
+    { n: "Jepang", c: "Tokyo" }, { n: "Jerman", c: "Berlin" }, { n: "Kamboja", c: "Phnom Penh" },
+    { n: "Kamerun", c: "Yaounde" }, { n: "Kanada", c: "Ottawa" }, { n: "Kazakhstan", c: "Astana" },
+    { n: "Kenya", c: "Nairobi" }, { n: "Kirgizstan", c: "Bishkek" }, { n: "Kolombia", c: "Bogota" },
+    { n: "Komoro", c: "Moroni" }, { n: "Kongo", c: "Kinshasa" }, { n: "Korea Selatan", c: "Seoul" },
+    { n: "Korea Utara", c: "Pyongyang" }, { n: "Kosta Rika", c: "San Jose" }, { n: "Kroasia", c: "Zagreb" },
+    { n: "Kuba", c: "Havana" }, { n: "Kuwait", c: "Kuwait City" }, { n: "Laos", c: "Vientiane" },
+    { n: "Latvia", c: "Riga" }, { n: "Lebanon", c: "Beirut" }, { n: "Lesotho", c: "Maseru" },
+    { n: "Liberia", c: "Monrovia" }, { n: "Libya", c: "Tripoli" }, { n: "Liechtenstein", c: "Vaduz" },
+    { n: "Lituania", c: "Vilnius" }, { n: "Luksemburg", c: "Luksemburg" }, { n: "Madagaskar", c: "Antananarivo" },
+    { n: "Makedonia Utara", c: "Skopje" }, { n: "Malawi", c: "Lilongwe" }, { n: "Malaysia", c: "Kuala Lumpur" },
+    { n: "Maladewa", c: "Male" }, { n: "Mali", c: "Bamako" }, { n: "Malta", c: "Valletta" },
+    { n: "Maroko", c: "Rabat" }, { n: "Mauritania", c: "Nouakchott" }, { n: "Mauritius", c: "Port Louis" },
+    { n: "Meksiko", c: "Mexico City" }, { n: "Mesir", c: "Kairo" }, { n: "Moldova", c: "Chisinau" },
+    { n: "Monako", c: "Monako" }, { n: "Mongolia", c: "Ulaanbaatar" }, { n: "Montenegro", c: "Podgorica" },
+    { n: "Mozambik", c: "Maputo" }, { n: "Myanmar", c: "Naypyidaw" }, { n: "Namibia", c: "Windhoek" },
+    { n: "Nauru", c: "Yaren" }, { n: "Nepal", c: "Kathmandu" }, { n: "Niger", c: "Niamey" },
+    { n: "Nigeria", c: "Abuja" }, { n: "Nikaragua", c: "Managua" }, { n: "Norwegia", c: "Oslo" },
+    { n: "Oman", c: "Muscat" }, { n: "Pakistan", c: "Islamabad" }, { n: "Palau", c: "Ngerulmud" },
+    { n: "Palestina", c: "Ramallah" }, { n: "Panama", c: "Panama City" }, { n: "Pantai Gading", c: "Yamoussoukro" },
+    { n: "Papua Nugini", c: "Port Moresby" }, { n: "Paraguay", c: "Asuncion" }, { n: "Perancis", c: "Paris" },
+    { n: "Peru", c: "Lima" }, { n: "Polandia", c: "Warsawa" }, { n: "Portugal", c: "Lisbon" },
+    { n: "Qatar", c: "Doha" }, { n: "Republik Dominika", c: "Santo Domingo" }, { n: "Rumania", c: "Bucharest" },
+    { n: "Rusia", c: "Moskow" }, { n: "Rwanda", c: "Kigali" }, { n: "Saint Kitts dan Nevis", c: "Basseterre" },
+    { n: "Saint Lucia", c: "Castries" }, { n: "Samoa", c: "Apia" }, { n: "San Marino", c: "San Marino" },
+    { n: "Selandia Baru", c: "Wellington" }, { n: "Senegal", c: "Dakar" }, { n: "Serbia", c: "Belgrade" },
+    { n: "Seychelles", c: "Victoria" }, { n: "Sierra Leone", c: "Freetown" }, { n: "Singapura", c: "Singapura" },
+    { n: "Siprus", c: "Nikosia" }, { n: "Slowakia", c: "Bratislava" }, { n: "Slovenia", c: "Ljubljana" },
+    { n: "Solomon", c: "Honiara" }, { n: "Somalia", c: "Mogadishu" }, { n: "Spanyol", c: "Madrid" },
+    { n: "Sri Lanka", c: "Sri Jayawardenepura Kotte" }, { n: "Sudan", c: "Khartoum" }, { n: "Suriah", c: "Damaskus" },
+    { n: "Suriname", c: "Paramaribo" }, { n: "Swedia", c: "Stockholm" }, { n: "Swiss", c: "Bern" },
+    { n: "Taiwan", c: "Taipei" }, { n: "Tajikistan", c: "Dushanbe" }, { n: "Tanzania", c: "Dodoma" },
+    { n: "Thailand", c: "Bangkok" }, { n: "Timor Leste", c: "Dili" }, { n: "Tiongkok", c: "Beijing" },
+    { n: "Togo", c: "Lome" }, { n: "Tonga", c: "Nuku'alofa" }, { n: "Trinidad dan Tobago", c: "Port of Spain" },
+    { n: "Tunisia", c: "Tunis" }, { n: "Turki", c: "Ankara" }, { n: "Turkmenistan", c: "Ashgabat" },
+    { n: "Tuvalu", c: "Funafuti" }, { n: "Uganda", c: "Kampala" }, { n: "Ukraina", c: "Kyiv" },
+    { n: "Uni Emirat Arab", c: "Abu Dhabi" }, { n: "Uruguay", c: "Montevideo" }, { n: "Uzbekistan", c: "Tashkent" },
+    { n: "Vanuatu", c: "Port Vila" }, { n: "Vatikan", c: "Vatikan" }, { n: "Venezuela", c: "Caracas" },
+    { n: "Vietnam", c: "Hanoi" }, { n: "Yaman", c: "Sanaa" }, { n: "Yordania", c: "Amman" },
+    { n: "Yunani", c: "Athena" }, { n: "Zambia", c: "Lusaka" }, { n: "Zimbabwe", c: "Harare" }
+  ];
+
+  let questions = [], currentQ = 0, scoreP1 = 0, scoreP2 = 0;
+  let isPlaying = false, timer, botTimer, timeLeft = 100;
+  const MAX_TIME = 100, TOTAL_Q = 20;
+  
+  const $ = id => document.getElementById(id);
+  const faceInput = $('faceInput'), facePreview = $('facePreview');
+  const uploadText = $('uploadText'), myAvatar = $('myAvatar'), myAvatarFallback = $('myAvatarFallback');
+  const startBtn = $('startBtn');
+
+  // ===== AUDIO ENGINE =====
+  let audioCtx = null, bgMusicInterval = null, isMusicPlaying = false;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playSfx(type) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'correct') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2);
+      gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+      gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    } else if (type === 'tick') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now); osc.stop(now + 0.05);
+    } else if (type === 'bot') {
+      osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+      gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
+    }
+  }
+
+  function startBgMusic() {
+    if (isMusicPlaying) return;
+    isMusicPlaying = true;
+    const notes = [130.81, 155.56, 196.00, 233.08, 261.63, 311.13, 392.00, 466.16];
+    let step = 0;
+
+    bgMusicInterval = setInterval(() => {
+      if (!audioCtx || !isMusicPlaying) return;
+      if (step % 4 === 0) {
+        const bass = audioCtx.createOscillator(), bassGain = audioCtx.createGain();
+        bass.type = 'sawtooth'; bass.frequency.setValueAtTime(notes[0] / 2, audioCtx.currentTime);
+        bassGain.gain.setValueAtTime(0.03, audioCtx.currentTime); bassGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        bass.connect(bassGain); bassGain.connect(audioCtx.destination);
+        bass.start(); bass.stop(audioCtx.currentTime + 0.5);
+      }
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = 'square'; osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.015, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+      step++;
+    }, 250);
+  }
+
+  // Helper Emoji Bendera dari Kode Negara (ISO 3166-1 alpha-2)
+  function getFlagEmoji(countryName) {
+    const map = {
+      "Afghanistan":"AF","Afrika Selatan":"ZA","Albania":"AL","Aljazair":"DZ","Amerika Serikat":"US","Andorra":"AD","Angola":"AO","Antigua dan Barbuda":"AG","Arab Saudi":"SA","Argentina":"AR","Armenia":"AM","Australia":"AU","Austria":"AT","Azerbaijan":"AZ","Bahama":"BS","Bahrain":"BH","Bangladesh":"BD","Barbados":"BB","Belanda":"NL","Belarus":"BY","Belgia":"BE","Belize":"BZ","Benin":"BJ","Bhutan":"BT","Bolivia":"BO","Bosnia dan Herzegovina":"BA","Botswana":"BW","Brazil":"BR","Brunei":"BN","Bulgaria":"BG","Burkina Faso":"BF","Burundi":"BI","Ceko":"CZ","Chad":"TD","Chile":"CL","China":"CN","Denmark":"DK","Djibouti":"DJ","Dominika":"DM","Ekuador":"EC","El Salvador":"SV","Eritrea":"ER","Estonia":"EE","Eswatini":"SZ","Ethiopia":"ET","Fiji":"FJ","Filipina":"PH","Finlandia":"FI","Gabon":"GA","Gambia":"GM","Georgia":"GE","Ghana":"GH","Grenada":"GD","Guatemala":"GT","Guinea":"GN","Guyana":"GY","Haiti":"HT","Honduras":"HN","Hongaria":"HU","India":"IN","Indonesia":"ID","Inggris":"GB","Irak":"IQ","Iran":"IR","Irlandia":"IE","Islandia":"IS","Israel":"IL","Italia":"IT","Jamaika":"JM","Jepang":"JP","Jerman":"DE","Kamboja":"KH","Kamerun":"CM","Kanada":"CA","Kazakhstan":"KZ","Kenya":"KE","Kirgizstan":"KG","Kolombia":"CO","Komoro":"KM","Kongo":"CD","Korea Selatan":"KR","Korea Utara":"KP","Kosta Rika":"CR","Kroasia":"HR","Kuba":"CU","Kuwait":"KW","Laos":"LA","Latvia":"LV","Lebanon":"LB","Lesotho":"LS","Liberia":"LR","Libya":"LY","Liechtenstein":"LI","Lituania":"LT","Luksemburg":"LU","Madagaskar":"MG","Makedonia Utara":"MK","Malawi":"MW","Malaysia":"MY","Maladewa":"MV","Mali":"ML","Malta":"MT","Maroko":"MA","Mauritania":"MR","Mauritius":"MU","Meksiko":"MX","Mesir":"EG","Moldova":"MD","Monako":"MC","Mongolia":"MN","Montenegro":"ME","Mozambik":"MZ","Myanmar":"MM","Namibia":"NA","Nauru":"NR","Nepal":"NP","Niger":"NE","Nigeria":"NG","Nikaragua":"NI","Norwegia":"NO","Oman":"OM","Pakistan":"PK","Palau":"PW","Palestina":"PS","Panama":"PA","Pantai Gading":"CI","Papua Nugini":"PG","Paraguay":"PY","Perancis":"FR","Peru":"PE","Polandia":"PL","Portugal":"PT","Qatar":"QA","Republik Dominika":"DO","Rumania":"RO","Rusia":"RU","Rwanda":"RW","Saint Kitts dan Nevis":"KN","Saint Lucia":"LC","Samoa":"WS","San Marino":"SM","Selandia Baru":"NZ","Senegal":"SN","Serbia":"RS","Seychelles":"SC","Sierra Leone":"SL","Singapura":"SG","Siprus":"CY","Slowakia":"SK","Slovenia":"SI","Solomon":"SB","Somalia":"SO","Spanyol":"ES","Sri Lanka":"LK","Sudan":"SD","Suriah":"SY","Suriname":"SR","Swedia":"SE","Swiss":"CH","Taiwan":"TW","Tajikistan":"TJ","Tanzania":"TZ","Thailand":"TH","Timor Leste":"TL","Tiongkok":"CN","Togo":"TG","Tonga":"TO","Trinidad dan Tobago":"TT","Tunisia":"TN","Turki":"TR","Turkmenistan":"TM","Tuvalu":"TV","Uganda":"UG","Ukraina":"UA","Uni Emirat Arab":"AE","Uruguay":"UY","Uzbekistan":"UZ","Vanuatu":"VU","Vatikan":"VA","Venezuela":"VE","Vietnam":"VN","Yaman":"YE","Yordania":"JO","Yunani":"GR","Zambia":"ZM","Zimbabwe":"ZW"
+    };
+    const code = map[countryName];
+    if (!code) return "🌍";
+    return code.replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+  }
+
+  // Handle Upload Foto
+  faceInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        facePreview.src = img.src; facePreview.style.display = 'block';
+        uploadText.style.display = 'none';
+        myAvatar.src = img.src; myAvatar.style.display = 'block'; myAvatarFallback.style.display = 'none';
+        startBtn.disabled = false;
+        initAudio();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function shuffle(a) { return a.sort(() => Math.random() - 0.5); }
+
+  function startGame() {
+    initAudio();
+    startBgMusic();
+    
+    // Ambil 20 negara acak untuk soal
+    const selectedCountries = shuffle([...countries]).slice(0, TOTAL_Q);
+    
+    // Buat soal dari negara terpilih
+    questions = selectedCountries.map(country => {
+      // Cari 3 negara pengecoh (salah) dari daftar negara
+      const wrongCountries = shuffle([...countries].filter(c => c.n !== country.n)).slice(0, 3);
+      return {
+        q: "Apa nama negara dari bendera ini?",
+        flag: getFlagEmoji(country.n),
+        ans: country.n,
+        wrong: wrongCountries.map(c => c.n)
+      };
+    });
+
+    currentQ = 0; scoreP1 = 0; scoreP2 = 0;
+    $('scoreP1').textContent = '0'; $('scoreP2').textContent = '0';
+    $('overlay').classList.add('hidden');
+    $('overlayResult').style.display = 'none';
+    $('setupScreen').style.display = 'block';
+    isPlaying = true;
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    if (currentQ >= TOTAL_Q) return endGame();
+    
+    const q = questions[currentQ];
+    $('progressText').textContent = `SOAL ${currentQ + 1} / ${TOTAL_Q}`;
+    $('questionText').textContent = q.q;
+    $('flagContainer').textContent = q.flag;
+    
+    const opts = shuffle([q.ans, ...q.wrong]);
+    const optionsGrid = $('optionsGrid');
+    optionsGrid.innerHTML = '';
+    opts.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-btn';
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt, q.ans);
+      optionsGrid.appendChild(btn);
+    });
+
+    timeLeft = MAX_TIME;
+    $('timerBar').style.width = '100%';
+    $('timerBar').style.background = 'linear-gradient(90deg, var(--p1), #00ff88)';
+    $('timerBar').style.boxShadow = '0 0 10px var(--p1)';
+    
+    clearInterval(timer);
+    clearTimeout(botTimer);
+    
+    timer = setInterval(() => {
+      timeLeft -= 1;
+      $('timerBar').style.width = `${Math.max(0, timeLeft)}%`;
+      
+      if (timeLeft < 50) {
+        $('timerBar').style.background = 'linear-gradient(90deg, #ffaa00, #ffdd00)';
+        $('timerBar').style.boxShadow = '0 0 10px #ffaa00';
+      }
+      if (timeLeft < 25) {
+        $('timerBar').style.background = 'linear-gradient(90deg, var(--red), #ff6666)';
+        $('timerBar').style.boxShadow = '0 0 10px var(--red)';
+        if (timeLeft % 5 === 0) playSfx('tick');
+      }
+
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        timeUp(q.ans);
+      }
+    }, 60);
+
+    botTimer = setTimeout(() => {
+      if (!isPlaying || timeLeft <= 0) return;
+      
+      const botBtns = [...optionsGrid.children];
+      const isBotCorrect = Math.random() > 0.35; // Bot 65% pintar
+      const botAns = isBotCorrect ? q.ans : q.wrong[Math.floor(Math.random() * q.wrong.length)];
+      const btn = botBtns.find(b => b.textContent === botAns);
+      
+      if (btn) {
+        btn.classList.add('bot-pick');
+        playSfx('bot');
+        if (botAns === q.ans) {
+          scoreP2++;
+          $('scoreP2').textContent = scoreP2;
+        }
+      }
+    }, 2000 + Math.random() * 3000);
+  }
+
+  function handleAnswer(btn, selected, correct) {
+    if (!isPlaying || timeLeft <= 0) return;
+    clearInterval(timer);
+    clearTimeout(botTimer);
+    
+    const allBtns = [...$('optionsGrid').children];
+    allBtns.forEach(b => b.disabled = true);
+    
+    if (selected === correct) {
+      btn.classList.add('correct');
+      scoreP1++;
+      $('scoreP1').textContent = scoreP1;
+      showFloat('BENAR!', 'var(--green)');
+      playSfx('correct');
+    } else {
+      btn.classList.add('wrong');
+      allBtns.forEach(b => { if (b.textContent === correct) b.classList.add('correct'); });
+      showFloat('SALAH', 'var(--red)');
+      playSfx('wrong');
+    }
+    
+    setTimeout(() => { currentQ++; loadQuestion(); }, 1200);
+  }
+
+  function timeUp(correct) {
+    const allBtns = [...$('optionsGrid').children];
+    allBtns.forEach(b => {
+      b.disabled = true;
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+    showFloat('WAKTU HABIS', '#ffaa00');
+    playSfx('wrong');
+    setTimeout(() => { currentQ++; loadQuestion(); }, 1200);
+  }
+
+  function showFloat(text, color) {
+    const el = $('floatText');
+    el.textContent = text;
+    el.style.color = color;
+    el.style.textShadow = `0 0 30px ${color}`;
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'popAnim 1s cubic-bezier(0.1, 0.8, 0.2, 1) forwards';
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timer);
+    clearTimeout(botTimer);
+    
+    let title = "SERI!";
+    let color = "#fff";
+    if (scoreP1 > scoreP2) { title = "KAMU MENANG!"; color = "var(--green)"; }
+    if (scoreP2 > scoreP1) { title = "KAMU KALAH"; color = "var(--red)"; }
+    
+    $('resTitle').textContent = title;
+    $('resTitle').style.color = color;
+    $('resTitle').style.textShadow = `0 0 20px ${color}`;
+    $('resScore').innerHTML = `<span class="p1">${scoreP1}</span> - <span class="p2">${scoreP2}</span>`;
+    $('overlayResult').style.display = 'block';
+    $('setupScreen').style.display = 'none';
+    $('overlay').classList.remove('hidden');
+  }
+
+  startBtn.onclick = startGame;
+  $('restartBtn').onclick = () => { $('overlayResult').style.display = 'none'; startGame(); };
+})();
+</script>
+</body>
+</html>
